@@ -1,11 +1,13 @@
 # Blood Pressure Change Estimation from PPG Signals
 
-This repository provides an end-to-end framework for preparing datasets and training machine learning models to estimate blood pressure (BP) changes from photoplethysmogram (PPG) signals. The data is derived from [VitalDB](https://vitaldb.net/), a public vital sign database.
+This repository provides an end-to-end framework for preparing datasets and training machine learning models to estimate blood pressure (BP) changes from photoplethysmogram (PPG) signals. The data is derived from [VitalDB](https://vitaldb.net/) and [PulsDB](https://doi.org/10.3389/fdgth.2022.1090854), public vital sign databases.
+
+The current release includes a small test dataset containing 10 subjects for demonstration purposes. Full datasets and complete codebase will be released progressively.
 
 ##  Project Structure
 ```
 .
-├── data/                  # Raw and intermediate HDF5 files
+├── data/                  # Raw and intermediate HDF5 files (10 subjects)
 ├── code/
 │   ├── matlab/            # MATLAB scripts for data preprocessing
 │   └── python/            # Python model training and evaluation
@@ -20,7 +22,7 @@ This project includes:
 
 - MATLAB code to process PPG and BP waveforms into labeled training/testing samples.
 - Balanced sampling based on systolic/diastolic/mean BP change magnitudes.
-- Python modules for model training and evaluation (e.g., classification, regression).
+- Python modules for model training and evaluation.
 
 ##  Requirements
 
@@ -36,7 +38,7 @@ This project includes:
 ### 1. Prepare Data (MATLAB)
 Place the following input files in the `data/` folder:
 - `vitaldb.h5`
-- `trn_ppgfea.h5`
+<!-- - `trn_ppgfea.h5` -->
 
 Then run the preprocessing scripts:
 
