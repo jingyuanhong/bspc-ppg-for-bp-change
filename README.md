@@ -27,6 +27,21 @@ This project includes:
 - Balanced sampling based on systolic/diastolic/mean BP change magnitudes.
 - Python modules for model training and evaluation.
 
+$\Delta \text{BP}_{i,j} = \text{BP}_{i+j} - \text{BP}_i$, $i = [1, 2, 3,…, N-1]$, $j = [1, 2, 3,…, N-i]$,
+where,
+ $\text{BP}_i$ is the initial blood pressure reading at time point $i$,
+ $\text{BP}_{i+j}$ is a subsequent blood pressure reading $j$ time points after $i$,
+ $\Delta \text{BP}_{i,j}$ represents the difference between these two readings.
+The index i ranges from 1 to N-1, where N is the total number of BP readings for a patient.
+This allows us to use any reading except the last one as our initial point. For each initial point
+i, j ranges from 1 to N-i, enabling us to calculate BP changes for all possible subsequent
+readings. The upper limit N-i prevents accessing readings beyond the total number N.
+Here is a concrete example: If a patient has 5 BP readings (N=5):
+ when i=1: j can be 1,2,3,4 (comparing BP reading 1 with BP readings 2,3,4,5)
+ when i=2: j can be 1,2,3 (comparing BP reading 2 with BP readings 3,4,5)
+ when i=3: j can be 1,2 (comparing BP reading 3 with BP readings 4,5)
+ when i=4: j can be 1 (comparing BP reading 4 with BP reading 5)
+
 ##  Requirements
 
 ### MATLAB
