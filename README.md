@@ -2,12 +2,12 @@
 
 This repository provides an end-to-end framework for preparing datasets and training machine learning models to estimate blood pressure (BP) changes from photoplethysmogram (PPG) signals. The data is derived from [VitalDB](https://vitaldb.net/) and [PulsDB](https://doi.org/10.3389/fdgth.2022.1090854), public vital sign databases.
 
-The current release includes a small test dataset containing 10 subjects for demonstration purposes. Full datasets and complete codebase will be released progressively.
+The current release includes a small test dataset containing 20 subjects for demonstration purposes. Full datasets and complete codebase will be released progressively.
 
 ##  Project Structure
 ```
 .
-├── data/                  # Raw and intermediate HDF5 files (10 subjects)
+├── data/                  # Raw and intermediate HDF5 files (20 subjects)
 ├── code/
 │   ├── matlab/            # MATLAB scripts for data preprocessing
 │   └── python/            # Python model training and evaluation
