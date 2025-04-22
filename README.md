@@ -11,7 +11,10 @@ The current release includes a small test dataset containing 20 subjects for dem
 ├── code/
 │   ├── matlab/            # MATLAB scripts for data preprocessing
 │   └── python/            # Python model training and evaluation
+│       ├── train/         # Training codes
+│       └── test/          # Testing codes
 ├── output/                # Auto-generated results
+├── models/                # Saved best performance models
 ├── README.md              # Project overview and usage
 ├── LICENSE                # Open-source license file
 └── .gitignore             # File exclusion rules

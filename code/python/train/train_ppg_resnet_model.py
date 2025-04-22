@@ -1,17 +1,17 @@
-# train_ppg_model.py
-# This script trains classification models to predict blood pressure changes from PPG signals.
-# Data is expected in HDF5 format, prepared via MATLAB preprocessing, and placed in "data/".
+# train_resnet_model.py
+# This script trains a ResNet-based model for classifying blood pressure changes from PPG signals.
+# The current version supports training using a small released dataset of 10 subjects. Full datasets will be released progressively.
 
-import h5py
 import torch
-from torch.utils.data import Dataset, DataLoader
+import torch.nn.functional as F
+import h5py
 import numpy as np
 import os
+import gc
+from torch.utils.data import Dataset, DataLoader
 from torch import nn
-import torch.nn.functional as F
 import torch.optim as optim
 from sklearn.model_selection import GroupKFold
-import gc
 
 # ---------------- Dataset Definition ----------------
 class MemoryEfficientPPGDataset(Dataset):
@@ -40,81 +40,63 @@ class MemoryEfficientPPGDataset(Dataset):
         ppg1 = sample[:875]
         ppg2 = sample[875:1750]
         sbp = sample[-1]
-
-        ppg1_d2 = np.diff(np.diff(ppg1, prepend=ppg1[0]), prepend=ppg1[0])
-        ppg2_d2 = np.diff(np.diff(ppg2, prepend=ppg2[0]), prepend=ppg2[0])
-
-        def min_max_normalize(feature):
-            return (feature - feature.min()) / (feature.max() - feature.min())
-
-        ppg1_d2 = min_max_normalize(ppg1_d2)
-        ppg2_d2 = min_max_normalize(ppg2_d2)
-
-        ppg_stacked = np.stack([ppg1, ppg1_d2, ppg2, ppg2_d2])
+        ppg_stacked = np.stack([ppg1, ppg2])
         label = np.argmax(file['label'][idx_in_file])
 
         return (torch.from_numpy(ppg_stacked).float(), torch.tensor(sbp).float()), torch.tensor(label, dtype=torch.long)
 
     def get_subject_idx(self):
-        return np.concatenate([f['subject_idx'][:].flatten() for f in self.file_handles])
+        return np.concatenate([file['subject_idx'][:].flatten() for file in self.file_handles])
 
     def __del__(self):
-        for f in self.file_handles:
-            f.close()
+        for file in self.file_handles:
+            file.close()
 
-# ---------------- Model Architecture ----------------
-class Attention(nn.Module):
-    def __init__(self):
+# ---------------- ResNet Model Definition ----------------
+class ResidualBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_sizes):
         super().__init__()
-        self.softmax = nn.Softmax(dim=2)
-        self.dense = nn.Linear(256, 256)
+        self.conv1 = nn.Conv1d(in_channels, out_channels, kernel_sizes[0], padding=kernel_sizes[0]//2)
+        self.conv2 = nn.Conv1d(out_channels, out_channels, kernel_sizes[1], padding=kernel_sizes[1]//2)
+        self.conv3 = nn.Conv1d(out_channels, out_channels, kernel_sizes[2], padding=kernel_sizes[2]//2)
+        self.norm1 = nn.InstanceNorm1d(out_channels)
+        self.norm2 = nn.InstanceNorm1d(out_channels)
+        self.norm3 = nn.InstanceNorm1d(out_channels)
+        self.prelu = nn.PReLU()
 
     def forward(self, x):
-        x = x.permute(0, 2, 1)
-        attn_weights = self.softmax(x)
-        return torch.sigmoid(self.dense(attn_weights * x))
+        residual = self.norm1(x)
+        out = self.prelu(self.norm1(self.conv1(x)))
+        out = self.prelu(self.norm2(self.conv2(out)))
+        out = self.norm3(self.conv3(out))
+        out += residual
+        return F.relu(out)
 
-class Encoder(nn.Module):
-    def __init__(self, num_classes, in_channels=4):
+class ResNet(nn.Module):
+    def __init__(self, input_channels, num_classes, seq_len=875):
         super().__init__()
-        self.conv1 = nn.Conv1d(in_channels + 1, 64, 5, padding=2)
-        self.conv2 = nn.Conv1d(65, 128, 11, padding=5)
-        self.conv3 = nn.Conv1d(129, 256, 21, padding=10)
-
+        self.conv1 = nn.Conv1d(input_channels + 1, 64, kernel_size=7, padding=3)
         self.norm1 = nn.InstanceNorm1d(64)
-        self.norm2 = nn.InstanceNorm1d(128)
-        self.norm3 = nn.InstanceNorm1d(256)
-
+        self.res_block1 = ResidualBlock(65, 65, [9, 5, 3])
+        self.res_block2 = ResidualBlock(66, 66, [9, 5, 3])
+        self.res_block3 = ResidualBlock(67, 67, [9, 5, 3])
+        self.fc_sbp = nn.Linear(1, seq_len)
         self.prelu = nn.PReLU()
-        self.dropout = nn.Dropout(0.2)
-        self.attention = Attention()
-
-        self.classifier = nn.Linear(256 * 218, num_classes)
-
-        self.fc_sbp1 = nn.Linear(1, 875)
-        self.fc_sbp2 = nn.Linear(1, 437)
-        self.fc_sbp3 = nn.Linear(1, 218)
+        self.gap = nn.AdaptiveAvgPool1d(1)
+        self.fc = nn.Linear(67, num_classes)
 
     def forward(self, x, sbp):
-        sbp_feat = self.fc_sbp1(sbp.unsqueeze(1))
-        x = torch.cat((x, sbp_feat.unsqueeze(1)), 1)
+        sbp_feature = self.fc_sbp(sbp.unsqueeze(1))
+        x = torch.cat((x, sbp_feature.unsqueeze(1)), dim=1)
         x = self.prelu(self.norm1(self.conv1(x)))
-        x = self.dropout(F.max_pool1d(x, 2))
-
-        sbp_feat = self.fc_sbp2(sbp.unsqueeze(1))
-        x = torch.cat((x, sbp_feat.unsqueeze(1)), 1)
-        x = self.prelu(self.norm2(self.conv2(x)))
-        x = self.dropout(F.max_pool1d(x, 2))
-
-        sbp_feat = self.fc_sbp3(sbp.unsqueeze(1))
-        x = torch.cat((x, sbp_feat.unsqueeze(1)), 1)
-        x = self.prelu(self.norm3(self.conv3(x)))
-        x = self.dropout(x)
-
-        x = self.attention(x).permute(0, 2, 1)
-        x = self.norm3(x)
-        x = torch.flatten(x, 1)
-        return self.classifier(x)
+        x = torch.cat((x, sbp_feature.unsqueeze(1)), dim=1)
+        x = self.res_block1(x)
+        x = torch.cat((x, sbp_feature.unsqueeze(1)), dim=1)
+        x = self.res_block2(x)
+        x = torch.cat((x, sbp_feature.unsqueeze(1)), dim=1)
+        x = self.res_block3(x)
+        x = self.gap(x).squeeze(-1)
+        return self.fc(x)
 
 # ---------------- Training Utilities ----------------
 def l1_regularization(model, lambda_l1):
@@ -139,9 +121,10 @@ class EarlyStopper:
 def train_model(model, train_loader, val_loader, criterion, optimizer, num_epochs, model_path):
     best_val_loss = float('inf')
     early_stopper = EarlyStopper()
+
     for epoch in range(num_epochs):
         model.train()
-        total_loss = 0
+        train_loss = 0
         for inputs, labels in train_loader:
             inputs = [x.to(device) for x in inputs]
             labels = labels.to(device)
@@ -152,7 +135,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, num_epoch
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            total_loss += loss.item()
+            train_loss += loss.item()
 
         val_loss = 0
         model.eval()
@@ -164,7 +147,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, num_epoch
                 val_loss += criterion(outputs, labels).item()
 
         avg_val_loss = val_loss / len(val_loader)
-        print(f"Epoch {epoch+1}: Train Loss={total_loss/len(train_loader):.4f}, Val Loss={avg_val_loss:.4f}")
+        print(f"Epoch {epoch+1}: Train Loss={train_loss/len(train_loader):.4f}, Val Loss={avg_val_loss:.4f}")
 
         if early_stopper.early_stop(avg_val_loss):
             print("Early stopping triggered.")
@@ -182,16 +165,15 @@ def cross_validate(dataset, subject_idx, model_cls, criterion, num_epochs, model
     gkf = GroupKFold(n_splits=5)
     for fold, (train_idx, val_idx) in enumerate(gkf.split(np.arange(len(dataset)), groups=subject_idx)):
         print(f"Fold {fold+1}/5")
-        model = model_cls(num_classes=3, in_channels=4).to(device)
-        optimizer = optim.Adam(model.parameters(), lr=1e-4)
+        model = model_cls(input_channels=2, num_classes=3).to(device)
+        optimizer = optim.Adam(model.parameters(), lr=0.001)
 
         train_loader = DataLoader(torch.utils.data.Subset(dataset, train_idx), batch_size=2048, shuffle=True, num_workers=4)
         val_loader = DataLoader(torch.utils.data.Subset(dataset, val_idx), batch_size=2048, shuffle=False, num_workers=4)
 
         model_path = f"{model_path_base}_fold{fold+1}.pth"
-        best_val_loss = train_model(model, train_loader, val_loader, criterion, optimizer, num_epochs, model_path)
-
-        results.append({"fold": fold+1, "val_loss": best_val_loss})
+        val_loss = train_model(model, train_loader, val_loader, criterion, optimizer, num_epochs, model_path)
+        results.append({"fold": fold+1, "val_loss": val_loss})
     return results
 
 # ---------------- Entry Point ----------------
@@ -203,14 +185,16 @@ if __name__ == "__main__":
     os.makedirs(model_output_dir, exist_ok=True)
 
     datasets = {
-        "SBP": ("./data/sbp_trn_30_part{}.h5", os.path.join(model_output_dir, "sbp"))
+        "SBP": ("././output/sbp_trn_30_part{}.h5", os.path.join(model_output_dir, "resnet_sbp"))
+        # "DBP": ("././output/dbp_trn_15_part{}.h5", os.path.join(model_output_dir, "resnet_dbp")),
+        # "MBP": ("././output/mbp_trn_20_part{}.h5", os.path.join(model_output_dir, "resnet_mbp"))
     }
 
     for name, (pattern, model_path) in datasets.items():
-        print(f"Training {name} model...")
+        print(f"Training {name} model (ResNet)...")
         dataset = MemoryEfficientPPGDataset(pattern)
         subject_idx = dataset.get_subject_idx()
-        results = cross_validate(dataset, subject_idx, Encoder, criterion, num_epochs=200, model_path_base=model_path)
+        results = cross_validate(dataset, subject_idx, ResNet, criterion, num_epochs=200, model_path_base=model_path)
 
         for res in results:
             print(f"{name} Fold {res['fold']} - Best Val Loss: {res['val_loss']:.4f}")
@@ -220,4 +204,4 @@ if __name__ == "__main__":
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
-    print("All models trained.")
+    print("All ResNet models trained.")
