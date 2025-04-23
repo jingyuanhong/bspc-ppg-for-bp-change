@@ -1,6 +1,18 @@
-# Blood Pressure Change Estimation from PPG Signals
+# Blood Pressure Change Classification from PPG Signals
 
-This repository provides an end-to-end framework for preparing datasets and training machine learning models to estimate blood pressure (BP) changes from photoplethysmogram (PPG) signals. The data is derived from [VitalDB](https://vitaldb.net/) and [PulsDB](https://doi.org/10.3389/fdgth.2022.1090854), public vital sign databases.
+![Example: Blood pressure measurement and change label detection. black-: real blood pressure measurement; red --: intitial blood pressure value; black -.-: setting extreme change threshold of blood pressure; green area: predicted change within threshold; red area: predicted change over threshold; yellow area: predicted change below threshold.](figure/animation.gif)
+<p align="center">
+<b>Figure 1:</b> Blood pressure measurement and change detection. <br>
+Legend: 
+⚫ <b>black solid line</b> - actual blood pressure measurements; 
+🔴 <b>red dashed line</b> - initial blood pressure value; 
+⚫ <b>black dash-dot line</b> - extreme change thresholds; 
+🟢 <b>green area</b> - predicted changes within threshold; 
+🔴 <b>red area</b> - predicted changes above threshold; 
+🟡 <b>yellow area</b> - predicted changes below threshold.
+</p>
+
+This repository provides an end-to-end framework for preparing datasets and training machine learning models to classify blood pressure (BP) change labels from photoplethysmogram (PPG) signals. The data is derived from [VitalDB](https://vitaldb.net/) and [PulsDB](https://doi.org/10.3389/fdgth.2022.1090854), public vital sign databases.
 
 The current release includes a small test dataset containing 20 subjects for demonstration purposes. Full datasets and complete codebase will be released progressively.
 
