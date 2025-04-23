@@ -12,7 +12,7 @@ Blood pressure measurement and change detection.
 ![Predicted Above Threshold](https://img.shields.io/badge/Predicted%20Above%20Threshold-red%20area-red)  
 ![Predicted Below Threshold](https://img.shields.io/badge/Predicted%20Below%20Threshold-yellow%20area-yellow) -->
 
-<p>
+<p align="center">
     <img src="https://img.shields.io/badge/Actual%20BP-solid%20line-black" />
     <img src="https://img.shields.io/badge/Initial%20BP-dashed%20line-red" />
     <img src="https://img.shields.io/badge/Setting%20Threshold-dashed%20dot%20line-black" />
