@@ -1,16 +1,16 @@
 # Blood Pressure Change Classification from PPG Signals
 
-![ ](figure/animation.gif)
-<p align="justify">
+![Example](figure/animation.gif)
+<p align="center">
 Blood pressure measurement and change detection.
 </p>
 
-![Actual BP](https://img.shields.io/badge/Actual%20BP-solid%20line-black)  
-<!-- ![Initial BP](https://img.shields.io/badge/Initial%20BP-dashed%20line-red)  
+![Actual BP](https://img.shields.io/badge/Actual%20BP-solid%20line-black)
+![Initial BP](https://img.shields.io/badge/Initial%20BP-dashed%20line-red) 
 ![Setting Threshold](https://img.shields.io/badge/Setting%20Threshold-dashed%20dot%20line-black)  
 ![Predicted Within Threshold](https://img.shields.io/badge/Predicted%20Within%20Threshold-green%20area-green)  
 ![Predicted Above Threshold](https://img.shields.io/badge/Predicted%20Above%20Threshold-red%20area-red)  
-![Predicted Below Threshold](https://img.shields.io/badge/Predicted%20Below%20Threshold-yellow%20area-yellow) -->
+![Predicted Below Threshold](https://img.shields.io/badge/Predicted%20Below%20Threshold-yellow%20area-yellow)
 
 
 This repository provides an end-to-end framework for preparing datasets and training machine learning models to classify blood pressure (BP) change labels from photoplethysmogram (PPG) signals. The data is derived from [VitalDB](https://vitaldb.net/) and [PulsDB](https://doi.org/10.3389/fdgth.2022.1090854), public vital sign databases.
