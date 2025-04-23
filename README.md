@@ -4,6 +4,7 @@
 <p align="justify">
 Blood pressure measurement and change detection.
 </p>
+
 ![Actual BP](https://img.shields.io/badge/Actual%20BP-solid%20line-black)  
 <!-- ![Initial BP](https://img.shields.io/badge/Initial%20BP-dashed%20line-red)  
 ![Setting Threshold](https://img.shields.io/badge/Setting%20Threshold-dashed%20dot%20line-black)  
