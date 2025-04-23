@@ -45,8 +45,10 @@ The current release includes a small test dataset containing 20 subjects for dem
 This project includes:
 
 - MATLAB code to process PPG and BP waveforms into labeled training/testing samples.
-- Balanced sampling based on systolic/diastolic/mean BP change magnitudes.
+- Balanced sampling based on systolic/diastolic/mean BP change labels.
 - Python modules for model training and evaluation.
+
+To quantify how blood pressure (BP) changes over time, we define the BP change between two time points as follows:
 
 ΔBP(i,j) = BP(i+j) - BP(i), i = [1, 2, 3,…, N-1], j = [1, 2, 3,…, N-i],
 where,
